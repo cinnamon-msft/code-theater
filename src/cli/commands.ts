@@ -34,6 +34,7 @@ export function createProgram(): Command {
     .option('--full', 'Generate scenes for every commit', false)
     .option('--highlights-only', 'Only generate pivotal moments', false)
     .option('--tool-budget <number>', 'AI exploration budget per scene', '20')
+    .option('--copilot-cli <path>', 'Path to Copilot CLI executable')
     .option('-e, --export <file>', 'Export to file (strips ANSI codes)')
     .action(async (opts) => {
       const options: GenerateOptions = {
@@ -46,6 +47,7 @@ export function createProgram(): Command {
         full: opts.full,
         highlightsOnly: opts.highlightsOnly,
         toolBudget: parseInt(opts.toolBudget, 10),
+        copilotCli: opts.copilotCli,
         export: opts.export,
       };
 
@@ -126,6 +128,7 @@ async function runGenerate(options: GenerateOptions): Promise<void> {
     const client = new TheaterClient({
       git,
       toolBudget: options.toolBudget,
+      cliPath: options.copilotCli,
     });
 
     await client.start();

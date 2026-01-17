@@ -150,6 +150,7 @@ export interface GenerateOptions {
   full: boolean;
   highlightsOnly: boolean;
   toolBudget: number;
+  copilotCli?: string;
   export?: string;
 }
 

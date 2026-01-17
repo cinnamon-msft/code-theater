@@ -4,6 +4,9 @@
 
 import { CopilotClient, CopilotSession } from '@github/copilot-sdk';
 import chalk from 'chalk';
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
 import type { ThrottleConfig } from '../types.js';
 import { ThrottledToolSystem, getDirectorSystemMessage } from './tools.js';
 import type { GitService } from '../git/services.js';
@@ -11,6 +14,36 @@ import type { GitService } from '../git/services.js';
 export interface ClientOptions {
   git: GitService;
   toolBudget?: number;
+  cliPath?: string;
+}
+
+/**
+ * Find the Copilot CLI path on different systems
+ */
+function findCopilotCliPath(): string | undefined {
+  // Check common VS Code extension locations
+  const home = os.homedir();
+  const possiblePaths = [
+    // VS Code Insiders (Windows)
+    path.join(home, 'AppData', 'Roaming', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot.bat'),
+    // VS Code (Windows)
+    path.join(home, 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot.bat'),
+    // VS Code (macOS)
+    path.join(home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+    // VS Code Insiders (macOS)
+    path.join(home, 'Library', 'Application Support', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+    // Linux
+    path.join(home, '.config', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+    path.join(home, '.config', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+
+  return undefined;
 }
 
 export class TheaterClient {
@@ -19,7 +52,16 @@ export class TheaterClient {
   private isStarted = false;
 
   constructor(private options: ClientOptions) {
-    this.client = new CopilotClient();
+    const cliPath = options.cliPath || findCopilotCliPath();
+    
+    if (cliPath) {
+      console.log(chalk.dim(`Using Copilot CLI: ${cliPath}`));
+      this.client = new CopilotClient({ cliPath });
+    } else {
+      console.log(chalk.dim('Using Copilot CLI from PATH'));
+      this.client = new CopilotClient();
+    }
+    
     this.toolSystem = new ThrottledToolSystem(options.git, {
       budgetPerScene: options.toolBudget || 20,
     });
