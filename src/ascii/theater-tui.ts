@@ -59,6 +59,26 @@ export class TheaterTUI {
     process.on('exit', () => this.cleanup());
   }
 
+  initializeWithThemes(
+    commits: Commit[],
+    contributorNames: string[],
+    themes: { title: string; commits: Commit[] }[]
+  ): void {
+    // Use theme-based commits instead of random
+    this.state.commits = themes.map(t => t.commits[0]).filter(Boolean);
+    this.state.totalScenes = themes.length;
+    
+    // Assign unique characters to contributors
+    this.state.characters = assignCharacters(contributorNames, 5);
+    
+    // Hide cursor for cleaner display
+    process.stdout.write(HIDE_CURSOR);
+    
+    // Handle cleanup on exit
+    process.on('SIGINT', () => this.cleanup());
+    process.on('exit', () => this.cleanup());
+  }
+
   cleanup(): void {
     process.stdout.write(SHOW_CURSOR);
     process.stdout.write('\n');

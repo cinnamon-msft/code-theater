@@ -9,10 +9,31 @@ import type { GenerateOptions, Genre } from '../types.js';
 import { GitService, GitExtractor, RemoteHandler } from '../git/index.js';
 import { TheaterClient } from '../ai/client.js';
 import { SessionManager } from '../sessions/manager.js';
-import { TUISceneGenerator } from '../scenes/tui-generator.js';
+import { StoryGenerator } from '../scenes/story-generator.js';
 import { AsciiRenderer } from '../ascii/renderer.js';
 import { renderPortraitWithInfo } from '../ascii/portraits.js';
 import { CommitCache } from '../cache/index.js';
+
+// Bot patterns for filtering
+const BOT_PATTERNS = [
+  /copilot/i,
+  /\[bot\]/i,
+  /^dependabot/i,
+  /^github-actions/i,
+  /^renovate/i,
+  /^greenkeeper/i,
+  /^snyk-bot/i,
+  /^semantic-release-bot/i,
+  /^web-flow$/i,
+  /noreply@github\.com$/i,
+  /github\.com$/i,
+  /^bot$/i,
+  /automation/i,
+];
+
+function isBot(name: string, email: string): boolean {
+  return BOT_PATTERNS.some(pattern => pattern.test(name) || pattern.test(email));
+}
 
 export function createProgram(): Command {
   const program = new Command();
@@ -165,13 +186,18 @@ async function runGenerate(options: GenerateOptions): Promise<void> {
       chalk.cyan(`\n🎬 ${isNew ? 'New story' : 'Continuing story'} - Act ${actNumber}\n`)
     );
 
-    // Get contributor names
+    // Filter out bot authors from commits
+    const filteredCommits = extraction.commits.filter(
+      c => !isBot(c.author.name, c.author.email)
+    );
+
+    // Get contributor names (already filtered in extraction)
     const contributorNames = extraction.contributors.map(c => c.name);
 
-    // Generate screenplay using TUI
-    const generator = new TUISceneGenerator();
+    // Generate screenplay using story-based generator
+    const generator = new StoryGenerator();
     await generator.generate(
-      extraction.commits,
+      filteredCommits,
       directorSession,
       contributorNames,
       {
