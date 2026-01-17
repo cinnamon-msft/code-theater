@@ -10,6 +10,7 @@ import { AsciiRenderer } from '../ascii/renderer.js';
 import { StreamingRenderer, parseScreenplay } from '../ascii/streaming.js';
 import { CharacterPool } from '../ai/characters.js';
 import { DensityManager, type DensityResult, type SceneGroup } from './density.js';
+import { getDetailedPortrait } from '../ascii/portraits.js';
 
 export interface GeneratorOptions {
   genre: Genre;
@@ -21,6 +22,7 @@ export class SceneGenerator {
   private renderer: AsciiRenderer;
   private streamingRenderer: StreamingRenderer;
   private densityManager: DensityManager;
+  private characterPool: CharacterPool | null = null;
 
   constructor() {
     this.renderer = new AsciiRenderer();
@@ -41,6 +43,9 @@ export class SceneGenerator {
     });
 
     console.log(chalk.dim(`\nGenerating ${mode} mode (${commits.length} commits)\n`));
+
+    // Store character pool for rendering
+    this.characterPool = characterPool;
 
     // Process commits into scene groups
     const result = await this.densityManager.processCommits(commits, mode);
@@ -272,8 +277,11 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
 
   private renderScreenplayContent(content: string): void {
     const elements = parseScreenplay(content);
+    let currentCharacter: string | null = null;
 
-    for (const element of elements) {
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      
       switch (element.type) {
         case 'scene-heading':
           console.log();
@@ -288,8 +296,18 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
           break;
 
         case 'character':
-          console.log();
-          console.log(' '.repeat(25) + chalk.bold.cyan(element.content));
+          currentCharacter = element.content.replace(/\s*\(.*\)$/, '').trim();
+          // Check if next element is dialogue to show portrait
+          const nextElement = elements[i + 1];
+          const dialogueAhead = nextElement && 
+            (nextElement.type === 'dialogue' || nextElement.type === 'parenthetical');
+          
+          if (dialogueAhead && this.characterPool) {
+            this.renderCharacterWithPortrait(currentCharacter);
+          } else {
+            console.log();
+            console.log(' '.repeat(25) + chalk.bold.cyan(element.content));
+          }
           break;
 
         case 'parenthetical':
@@ -297,7 +315,7 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
           break;
 
         case 'dialogue':
-          console.log(' '.repeat(15) + element.content);
+          this.renderDialogueWithBubble(element.content, currentCharacter);
           break;
 
         case 'transition':
@@ -307,6 +325,81 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
           break;
       }
     }
+  }
+
+  private renderCharacterWithPortrait(characterName: string): void {
+    if (!this.characterPool) {
+      console.log();
+      console.log(' '.repeat(25) + chalk.bold.cyan(characterName));
+      return;
+    }
+
+    // Find the character profile (try exact match, then partial)
+    let profile = this.characterPool.getProfile(characterName);
+    
+    if (!profile) {
+      // Try to find partial match
+      for (const name of this.characterPool.getNamedCharacters()) {
+        if (name.toLowerCase().includes(characterName.toLowerCase()) ||
+            characterName.toLowerCase().includes(name.split(' ')[0].toLowerCase())) {
+          profile = this.characterPool.getProfile(name);
+          break;
+        }
+      }
+    }
+
+    if (profile) {
+      const portrait = getDetailedPortrait(profile);
+      console.log();
+      console.log(chalk.cyan('┌' + '─'.repeat(40) + '┐'));
+      
+      // Show first 8 lines of portrait with name
+      const portraitLines = portrait.lines.slice(0, 8);
+      for (let i = 0; i < portraitLines.length; i++) {
+        const line = portraitLines[i].substring(0, 38);
+        if (i === 2) {
+          console.log(chalk.cyan('│') + line.padEnd(40) + chalk.cyan('│'));
+        } else {
+          console.log(chalk.cyan('│') + line.padEnd(40) + chalk.cyan('│'));
+        }
+      }
+      
+      console.log(chalk.cyan('│') + ' '.repeat(40) + chalk.cyan('│'));
+      console.log(chalk.cyan('│') + chalk.bold.cyan(` ${profile.emoji} ${characterName}`.padEnd(40)) + chalk.cyan('│'));
+      console.log(chalk.cyan('│') + chalk.dim(` ${profile.archetype}`.padEnd(40)) + chalk.cyan('│'));
+      console.log(chalk.cyan('└' + '─'.repeat(40) + '┘'));
+    } else {
+      console.log();
+      console.log(' '.repeat(25) + chalk.bold.cyan(characterName));
+    }
+  }
+
+  private renderDialogueWithBubble(dialogue: string, characterName: string | null): void {
+    const maxWidth = 50;
+    const words = dialogue.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      if ((currentLine + ' ' + word).trim().length <= maxWidth) {
+        currentLine = (currentLine + ' ' + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Render speech bubble
+    const bubbleWidth = Math.max(...lines.map(l => l.length), 10) + 4;
+    
+    console.log(' '.repeat(10) + '╭' + '─'.repeat(bubbleWidth) + '╮');
+    for (const line of lines) {
+      console.log(' '.repeat(10) + '│ ' + line.padEnd(bubbleWidth - 2) + ' │');
+    }
+    console.log(' '.repeat(10) + '╰' + '─'.repeat(bubbleWidth) + '╯');
+    console.log(' '.repeat(10) + '  ╲');
+    console.log(' '.repeat(10) + '   ╲');
   }
 
   private getTimeOfDay(date: Date): string {
