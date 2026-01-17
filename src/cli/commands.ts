@@ -12,6 +12,7 @@ import { SessionManager } from '../sessions/manager.js';
 import { SceneGenerator } from '../scenes/generator.js';
 import { AsciiRenderer } from '../ascii/renderer.js';
 import { renderPortraitWithInfo } from '../ascii/portraits.js';
+import { CommitCache } from '../cache/index.js';
 
 export function createProgram(): Command {
   const program = new Command();
@@ -112,17 +113,30 @@ async function runGenerate(options: GenerateOptions): Promise<void> {
     const git = await GitService.create(repoPath);
     const extractor = new GitExtractor(git);
 
-    spinner.text = 'Extracting commit history...';
+    // Check cache first
+    const cache = new CommitCache();
+    let extraction = cache.get(repoPath, options.from, options.to);
 
-    // Extract commits
-    const extraction = await extractor.extract({
-      from: options.from,
-      to: options.to,
-    });
+    if (extraction) {
+      spinner.succeed(
+        `Using cached history: ${extraction.commits.length} commits by ${extraction.contributors.length} contributors`
+      );
+    } else {
+      spinner.text = 'Extracting commit history...';
 
-    spinner.succeed(
-      `Found ${extraction.commits.length} commits by ${extraction.contributors.length} contributors`
-    );
+      // Extract commits
+      extraction = await extractor.extract({
+        from: options.from,
+        to: options.to,
+      });
+
+      // Cache the result
+      cache.set(repoPath, options.from, options.to, extraction);
+
+      spinner.succeed(
+        `Found ${extraction.commits.length} commits by ${extraction.contributors.length} contributors`
+      );
+    }
 
     // Create AI client
     const client = new TheaterClient({

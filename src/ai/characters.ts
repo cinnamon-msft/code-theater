@@ -160,14 +160,17 @@ export class CharacterPool {
   private getRankedArchetypes(contributor: ContributorStats): ArchetypeTemplate[] {
     const patterns = contributor.patterns;
     
+    // Add small random jitter (0-0.5) to break ties and create variety
+    const jitter = () => Math.random() * 0.5;
+    
     const scores: { archetype: ArchetypeTemplate; score: number }[] = [
-      { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 },
-      { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 },
-      { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 },
-      { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 },
-      { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) },
-      { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 },
-      { archetype: ARCHETYPES.GENERALIST, score: 0.5 },
+      { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 + jitter() },
+      { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 + jitter() },
+      { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 + jitter() },
+      { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 + jitter() },
+      { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) + jitter() },
+      { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 + jitter() },
+      { archetype: ARCHETYPES.GENERALIST, score: 0.5 + jitter() },
     ];
 
     scores.sort((a, b) => b.score - a.score);
