@@ -23,7 +23,7 @@ export interface SceneGroup {
 
 const FULL_THRESHOLD = 50;
 const MONTAGE_THRESHOLD = 200;
-const HIGHLIGHTS_COUNT = 25;
+const HIGHLIGHTS_COUNT = 10;  // Reduced from 25 for faster output
 
 export class DensityManager {
   determineDensityMode(

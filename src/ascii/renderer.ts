@@ -179,53 +179,30 @@ export class AsciiRenderer {
   }
 
   renderMontage(title: string, commits: Commit[]): void {
-    const width = Math.min(this.context.terminalWidth, 100);
+    const width = Math.min(this.context.terminalWidth, 80);
     
     console.log();
     console.log(chalk.magenta('╔' + '═'.repeat(width - 2) + '╗'));
     console.log(chalk.magenta('║') + this.centerText(chalk.bold(`♪ MONTAGE: ${title.toUpperCase()} ♪`), width - 2) + chalk.magenta('║'));
     console.log(chalk.magenta('║') + ' '.repeat(width - 2) + chalk.magenta('║'));
     
-    // Commit timeline
-    const boxWidth = 14;
-    const commitsPerRow = Math.floor((width - 4) / (boxWidth + 4));
+    // Show just a few representative commits
+    const previewCount = Math.min(commits.length, 5);
+    for (let i = 0; i < previewCount; i++) {
+      const commit = commits[i];
+      const msg = commit.message.substring(0, width - 20);
+      const author = commit.author.name.substring(0, 15);
+      const line = `  ▸ ${chalk.cyan(author.padEnd(15))} ${chalk.dim(msg)}`;
+      console.log(chalk.magenta('║') + line.padEnd(width - 2) + chalk.magenta('║'));
+    }
     
-    for (let i = 0; i < commits.length; i += commitsPerRow) {
-      const rowCommits = commits.slice(i, i + commitsPerRow);
-      
-      // Top border
-      let line1 = '  ';
-      for (const _ of rowCommits) {
-        line1 += '┌' + '─'.repeat(boxWidth) + '┐   ';
-      }
-      console.log(chalk.magenta('║') + line1.padEnd(width - 2) + chalk.magenta('║'));
-      
-      // Content
-      let line2 = '  ';
-      for (const commit of rowCommits) {
-        const msg = commit.message.substring(0, boxWidth - 2);
-        line2 += '│ ' + msg.padEnd(boxWidth - 2) + ' │ → ';
-      }
-      console.log(chalk.magenta('║') + chalk.dim(line2.slice(0, -3).padEnd(width - 2)) + chalk.magenta('║'));
-      
-      // Author
-      let line3 = '  ';
-      for (const commit of rowCommits) {
-        const author = commit.author.name.substring(0, boxWidth - 2);
-        line3 += '│ ' + chalk.cyan(author.padEnd(boxWidth - 2)) + ' │   ';
-      }
-      console.log(chalk.magenta('║') + line3.padEnd(width - 2) + chalk.magenta('║'));
-      
-      // Bottom border
-      let line4 = '  ';
-      for (const _ of rowCommits) {
-        line4 += '└' + '─'.repeat(boxWidth) + '┘   ';
-      }
-      console.log(chalk.magenta('║') + line4.padEnd(width - 2) + chalk.magenta('║'));
+    if (commits.length > previewCount) {
+      const remaining = commits.length - previewCount;
+      console.log(chalk.magenta('║') + this.centerText(chalk.dim(`... and ${remaining} more commits`), width - 2) + chalk.magenta('║'));
     }
     
     console.log(chalk.magenta('║') + ' '.repeat(width - 2) + chalk.magenta('║'));
-    console.log(chalk.magenta('║') + this.centerText(chalk.dim(`${commits.length} commits`), width - 2) + chalk.magenta('║'));
+    console.log(chalk.magenta('║') + this.centerText(chalk.dim(`${commits.length} commits total`), width - 2) + chalk.magenta('║'));
     console.log(chalk.magenta('╚' + '═'.repeat(width - 2) + '╝'));
     console.log();
   }

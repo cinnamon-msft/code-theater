@@ -40,6 +40,12 @@ export class StreamingRenderer {
   }
 
   async handleComplete(content: string): Promise<void> {
+    // Render all the content
+    const lines = content.split('\n');
+    for (const line of lines) {
+      await this.renderLine(line);
+    }
+
     // Flush remaining buffer
     if (this.buffer) {
       await this.renderLine(this.buffer);

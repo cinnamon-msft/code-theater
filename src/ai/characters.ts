@@ -87,9 +87,14 @@ export class CharacterPool {
     console.log(chalk.cyan('\n🎭 CAST OF CHARACTERS\n'));
     console.log(chalk.cyan('─'.repeat(50)));
 
+    // Track used archetypes to ensure diversity
+    const usedArchetypes = new Set<string>();
+    const allArchetypes = Object.values(ARCHETYPES);
+
     // Create named character sessions
     for (const contributor of named) {
-      const profile = this.buildProfile(contributor);
+      const profile = this.buildProfileWithDiversity(contributor, usedArchetypes, allArchetypes);
+      usedArchetypes.add(profile.archetype);
       this.characterProfiles.set(contributor.name, profile);
 
       const session = await this.client.createCharacterSession(contributor.name, {
@@ -118,6 +123,55 @@ export class CharacterPool {
     }
 
     console.log(chalk.cyan('─'.repeat(50)));
+  }
+
+  private buildProfileWithDiversity(
+    contributor: ContributorStats,
+    usedArchetypes: Set<string>,
+    allArchetypes: ArchetypeTemplate[]
+  ): CharacterProfile {
+    // Get ranked archetypes by how well they match this contributor
+    const ranked = this.getRankedArchetypes(contributor);
+    
+    // Find the best matching archetype that hasn't been used
+    let archetype = ranked[0];
+    for (const candidate of ranked) {
+      if (!usedArchetypes.has(candidate.name)) {
+        archetype = candidate;
+        break;
+      }
+    }
+    
+    // If all archetypes are used (more than 7 contributors), allow repeats
+    // but still try to pick the best match
+    
+    return {
+      archetype: archetype.name,
+      emoji: archetype.emoji,
+      description: archetype.description,
+      traits: archetype.traits,
+      speechStyle: archetype.speechStyle,
+      catchphrase: archetype.catchphrase,
+      commitStyle: this.analyzeCommitStyle(contributor),
+      relationships: [],
+    };
+  }
+
+  private getRankedArchetypes(contributor: ContributorStats): ArchetypeTemplate[] {
+    const patterns = contributor.patterns;
+    
+    const scores: { archetype: ArchetypeTemplate; score: number }[] = [
+      { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 },
+      { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 },
+      { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 },
+      { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 },
+      { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) },
+      { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 },
+      { archetype: ARCHETYPES.GENERALIST, score: 0.5 },
+    ];
+
+    scores.sort((a, b) => b.score - a.score);
+    return scores.map(s => s.archetype);
   }
 
   getProfile(authorName: string): CharacterProfile | undefined {
@@ -160,41 +214,6 @@ Keep your response to 1-3 sentences of dialogue only. No action descriptions.`;
 
     const response = await session.sendAndWait({ prompt });
     return response?.data?.content || '';
-  }
-
-  private buildProfile(contributor: ContributorStats): CharacterProfile {
-    const archetype = this.detectArchetype(contributor);
-    const commitStyle = this.analyzeCommitStyle(contributor);
-
-    return {
-      archetype: archetype.name,
-      emoji: archetype.emoji,
-      description: archetype.description,
-      traits: archetype.traits,
-      speechStyle: archetype.speechStyle,
-      catchphrase: archetype.catchphrase,
-      commitStyle,
-      relationships: [],
-    };
-  }
-
-  private detectArchetype(contributor: ContributorStats): ArchetypeTemplate {
-    const patterns = contributor.patterns;
-    
-    // Score each archetype based on how well patterns match
-    const scores: { archetype: ArchetypeTemplate; score: number }[] = [
-      { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 },
-      { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 },
-      { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 },
-      { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 },
-      { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) },
-      { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 },
-      { archetype: ARCHETYPES.GENERALIST, score: 0.5 }, // Baseline
-    ];
-
-    // Find the best matching archetype
-    scores.sort((a, b) => b.score - a.score);
-    return scores[0].archetype;
   }
 
   private analyzeCommitStyle(contributor: ContributorStats): string {
