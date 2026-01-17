@@ -17,29 +17,51 @@ export interface ClientOptions {
   cliPath?: string;
 }
 
+interface CopilotCliConfig {
+  cliPath: string;
+  cliArgs?: string[];
+}
+
 /**
- * Find the Copilot CLI path on different systems
+ * Find the Copilot CLI configuration on different systems
+ * On Windows, we need to use node directly since spawn doesn't handle .cmd/.bat files
  */
-function findCopilotCliPath(): string | undefined {
-  // Check common VS Code extension locations
+function findCopilotCliConfig(): CopilotCliConfig | undefined {
   const home = os.homedir();
-  const possiblePaths = [
-    // VS Code Insiders (Windows)
-    path.join(home, 'AppData', 'Roaming', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot.bat'),
-    // VS Code (Windows)
-    path.join(home, 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot.bat'),
-    // VS Code (macOS)
-    path.join(home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
-    // VS Code Insiders (macOS)
-    path.join(home, 'Library', 'Application Support', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
-    // Linux
-    path.join(home, '.config', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
-    path.join(home, '.config', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+  const isWindows = os.platform() === 'win32';
+
+  // First, check for npm-installed copilot (works cross-platform with node)
+  const npmLoaderPaths = [
+    path.join(home, 'AppData', 'Roaming', 'npm', 'node_modules', '@github', 'copilot', 'npm-loader.js'),
+    path.join(home, '.npm-global', 'lib', 'node_modules', '@github', 'copilot', 'npm-loader.js'),
+    '/usr/local/lib/node_modules/@github/copilot/npm-loader.js',
+    '/usr/lib/node_modules/@github/copilot/npm-loader.js',
   ];
 
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      return p;
+  for (const loaderPath of npmLoaderPaths) {
+    if (fs.existsSync(loaderPath)) {
+      return {
+        cliPath: process.execPath, // Use current node executable
+        cliArgs: [loaderPath],
+      };
+    }
+  }
+
+  // On non-Windows, we can use the VS Code extension directly
+  if (!isWindows) {
+    const possiblePaths = [
+      // macOS
+      path.join(home, 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+      path.join(home, 'Library', 'Application Support', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+      // Linux
+      path.join(home, '.config', 'Code', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+      path.join(home, '.config', 'Code - Insiders', 'User', 'globalStorage', 'github.copilot-chat', 'copilotCli', 'copilot'),
+    ];
+
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        return { cliPath: p };
+      }
     }
   }
 
@@ -52,14 +74,26 @@ export class TheaterClient {
   private isStarted = false;
 
   constructor(private options: ClientOptions) {
-    const cliPath = options.cliPath || findCopilotCliPath();
-    
-    if (cliPath) {
-      console.log(chalk.dim(`Using Copilot CLI: ${cliPath}`));
-      this.client = new CopilotClient({ cliPath });
+    if (options.cliPath) {
+      console.log(chalk.dim(`Using Copilot CLI: ${options.cliPath}`));
+      this.client = new CopilotClient({ cliPath: options.cliPath });
     } else {
-      console.log(chalk.dim('Using Copilot CLI from PATH'));
-      this.client = new CopilotClient();
+      const config = findCopilotCliConfig();
+      
+      if (config) {
+        if (config.cliArgs) {
+          console.log(chalk.dim(`Using Copilot via node: ${config.cliArgs[0]}`));
+        } else {
+          console.log(chalk.dim(`Using Copilot CLI: ${config.cliPath}`));
+        }
+        this.client = new CopilotClient({
+          cliPath: config.cliPath,
+          cliArgs: config.cliArgs,
+        });
+      } else {
+        console.log(chalk.dim('Using Copilot CLI from PATH'));
+        this.client = new CopilotClient();
+      }
     }
     
     this.toolSystem = new ThrottledToolSystem(options.git, {
