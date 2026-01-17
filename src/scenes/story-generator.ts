@@ -34,9 +34,15 @@ export class StoryGenerator {
     options: StoryGeneratorOptions
   ): Promise<void> {
     // First, analyze all commits to find major themes
-    console.log('\n🎬 Analyzing commit history for major story arcs...\n');
+    console.log('🎬 Analyzing commit history for major story arcs...\n');
     
-    const themes = await this.identifyThemes(commits, directorSession);
+    let themes: StoryTheme[];
+    try {
+      themes = await this.identifyThemes(commits, directorSession);
+    } catch (e) {
+      console.log('Using automatic theme detection...\n');
+      themes = this.createFallbackThemes(commits);
+    }
     
     // Initialize TUI with theme-based commits
     this.tui.initializeWithThemes(commits, contributorNames, themes);
@@ -84,41 +90,36 @@ export class StoryGenerator {
   ): Promise<StoryTheme[]> {
     // Group commits by common patterns
     const commitSummary = this.summarizeCommits(commits);
+    const topAuthors = this.getTopAuthors(commits);
     
-    const prompt = `Analyze these commit patterns from a software release and identify the 5 MAJOR story arcs or themes.
+    // If no commits or authors, use fallback immediately
+    if (commits.length === 0 || topAuthors.length === 0) {
+      return this.createFallbackThemes(commits);
+    }
+    
+    const prompt = `Analyze these commit patterns and identify 5 major themes. Respond with JSON only.
 
-COMMIT SUMMARY:
 ${commitSummary}
 
-TOP AUTHORS: ${this.getTopAuthors(commits).join(', ')}
+Authors: ${topAuthors.join(', ')}
 
-Respond with exactly 5 themes in this JSON format (no markdown, just JSON):
-[
-  {"title": "Theme Title", "keywords": ["keyword1", "keyword2"], "protagonist": "Author Name"},
-  ...
-]
-
-Focus on:
-- Major features added
-- Important bug fixes
-- Refactoring efforts  
-- Performance improvements
-- Breaking changes
-
-Make the titles dramatic and story-like.`;
+JSON format (no markdown):
+[{"title": "Theme", "keywords": ["word"], "protagonist": "Author"}]`;
 
     try {
       const response = await directorSession.sendAndWait({ prompt });
       const content = response?.data?.content || '';
       
       // Parse JSON response
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const jsonMatch = content.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        return this.mapThemesToCommits(parsed, commits);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return this.mapThemesToCommits(parsed, commits);
+        }
       }
     } catch (e) {
-      // Fallback to automatic theme detection
+      // Fall through to fallback
     }
     
     // Fallback: create themes from commit patterns
