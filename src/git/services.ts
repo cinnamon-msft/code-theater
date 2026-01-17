@@ -128,6 +128,24 @@ export class GitService {
   }
 
   async getContributorStats(commits: Commit[]): Promise<ContributorStats[]> {
+    // Bot accounts to filter out
+    const BOT_PATTERNS = [
+      /^copilot$/i,
+      /copilot\[bot\]/i,
+      /\[bot\]$/i,
+      /^dependabot/i,
+      /^github-actions/i,
+      /^renovate/i,
+      /^greenkeeper/i,
+      /^snyk-bot/i,
+      /^semantic-release-bot/i,
+      /^web-flow$/i,
+      /^noreply@github\.com$/i,
+    ];
+
+    const isBot = (name: string, email: string): boolean => 
+      BOT_PATTERNS.some(pattern => pattern.test(name) || pattern.test(email));
+
     const statsMap = new Map<string, {
       name: string;
       email: string;
@@ -135,6 +153,11 @@ export class GitService {
     }>();
 
     for (const commit of commits) {
+      // Skip bot accounts
+      if (isBot(commit.author.name, commit.author.email)) {
+        continue;
+      }
+
       const key = commit.author.email;
       if (!statsMap.has(key)) {
         statsMap.set(key, {

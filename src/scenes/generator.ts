@@ -101,12 +101,8 @@ Keep it to 5-10 lines. Use proper screenplay format.`;
     const response = await directorSession.sendAndWait({ prompt });
     const content = response?.data?.content || '';
 
-    // Parse and render
-    if (options.streaming) {
-      await this.streamingRenderer.handleComplete(content);
-    } else {
-      this.renderScreenplayContent(content);
-    }
+    // Parse and render with portraits
+    this.renderScreenplayContent(content);
   }
 
   private async generateSceneGroup(
@@ -195,11 +191,8 @@ Keep it concise - about 10-15 lines total.`;
 
     this.renderer.clearProgress();
 
-    if (options.streaming) {
-      await this.streamingRenderer.handleComplete(content);
-    } else {
-      this.renderScreenplayContent(content);
-    }
+    // Always use renderScreenplayContent for ASCII portraits
+    this.renderScreenplayContent(content);
   }
 
   private async generateMontageScene(
@@ -292,7 +285,7 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
           break;
 
         case 'action':
-          console.log('  ' + chalk.dim(element.content));
+          console.log('  ' + chalk.white(element.content));
           break;
 
         case 'character':

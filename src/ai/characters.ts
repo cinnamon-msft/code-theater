@@ -133,8 +133,10 @@ export class CharacterPool {
     // Get ranked archetypes by how well they match this contributor
     const ranked = this.getRankedArchetypes(contributor);
     
-    // Find the best matching archetype that hasn't been used
-    let archetype = ranked[0];
+    // STRICT: First 7 characters MUST have unique archetypes
+    // Find first unused archetype (prioritize match quality but require uniqueness)
+    let archetype: ArchetypeTemplate | null = null;
+    
     for (const candidate of ranked) {
       if (!usedArchetypes.has(candidate.name)) {
         archetype = candidate;
@@ -142,8 +144,16 @@ export class CharacterPool {
       }
     }
     
-    // If all archetypes are used (more than 7 contributors), allow repeats
-    // but still try to pick the best match
+    // If all 7 archetypes are used, we can repeat - pick best match
+    if (!archetype) {
+      // Pick a random one to add variety in repeats
+      const unusedInRound = ranked.filter(a => {
+        // Count how many times this archetype appears
+        const count = Array.from(usedArchetypes).filter(u => u === a.name).length;
+        return count < Math.ceil(usedArchetypes.size / 7);
+      });
+      archetype = unusedInRound[0] || ranked[Math.floor(Math.random() * ranked.length)];
+    }
     
     return {
       archetype: archetype.name,
