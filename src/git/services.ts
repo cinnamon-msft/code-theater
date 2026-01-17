@@ -204,7 +204,7 @@ export class GitService {
     // Calculate totals
     const totalAdditions = commits.reduce((sum, c) => sum + c.additions, 0);
     const totalDeletions = commits.reduce((sum, c) => sum + c.deletions, 0);
-    const avgDiffSize = (totalAdditions + totalDeletions) / commits.length;
+    const avgDiffSize = commits.length > 0 ? (totalAdditions + totalDeletions) / commits.length : 0;
 
     // Find co-authors
     const coAuthorSet = new Set<string>();

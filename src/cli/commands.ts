@@ -246,14 +246,19 @@ async function runShowCharacters(repo: string, from?: string, to?: string): Prom
     for (const contributor of extraction.contributors.slice(0, 10)) {
       const patterns = contributor.patterns;
       
-      // Determine archetype
-      let archetype = ARCHETYPES.GENERALIST;
-      if (patterns.lateNightRatio > 0.4) archetype = ARCHETYPES.NIGHT_OWL;
-      else if (patterns.testFileRatio > 0.3) archetype = ARCHETYPES.BUG_HUNTER;
-      else if (patterns.refactorRatio > 0.25) archetype = ARCHETYPES.REFACTORER;
-      else if (patterns.docFileRatio > 0.2) archetype = ARCHETYPES.DOCUMENTATION_HERO;
-      else if (patterns.avgFilesPerCommit > 10) archetype = ARCHETYPES.ARCHITECT;
-      else if (patterns.avgCommitSize < 20) archetype = ARCHETYPES.PERFECTIONIST;
+      // Score each archetype based on how well patterns match
+      const scores: { archetype: typeof ARCHETYPES.GENERALIST; score: number }[] = [
+        { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 },
+        { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 },
+        { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 },
+        { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 },
+        { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) },
+        { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 },
+        { archetype: ARCHETYPES.GENERALIST, score: 0.5 },
+      ];
+
+      scores.sort((a, b) => b.score - a.score);
+      const archetype = scores[0].archetype;
 
       const profile = {
         archetype: archetype.name,

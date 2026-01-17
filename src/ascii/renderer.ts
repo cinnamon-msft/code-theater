@@ -257,7 +257,8 @@ export class AsciiRenderer {
 
   renderProgress(current: number, total: number, label: string): void {
     const width = 40;
-    const filled = Math.floor((current / total) * width);
+    const ratio = total > 0 ? current / total : 0;
+    const filled = Math.min(Math.floor(ratio * width), width);
     const bar = '▓'.repeat(filled) + '░'.repeat(width - filled);
     
     process.stdout.write(`\r  ${bar} ${current}/${total} ${label}`);

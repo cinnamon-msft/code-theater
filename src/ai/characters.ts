@@ -180,27 +180,21 @@ Keep your response to 1-3 sentences of dialogue only. No action descriptions.`;
 
   private detectArchetype(contributor: ContributorStats): ArchetypeTemplate {
     const patterns = contributor.patterns;
+    
+    // Score each archetype based on how well patterns match
+    const scores: { archetype: ArchetypeTemplate; score: number }[] = [
+      { archetype: ARCHETYPES.NIGHT_OWL, score: patterns.lateNightRatio * 10 },
+      { archetype: ARCHETYPES.BUG_HUNTER, score: patterns.testFileRatio * 8 },
+      { archetype: ARCHETYPES.REFACTORER, score: patterns.refactorRatio * 8 },
+      { archetype: ARCHETYPES.DOCUMENTATION_HERO, score: patterns.docFileRatio * 8 },
+      { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) },
+      { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 },
+      { archetype: ARCHETYPES.GENERALIST, score: 0.5 }, // Baseline
+    ];
 
-    if (patterns.lateNightRatio > 0.4) {
-      return ARCHETYPES.NIGHT_OWL;
-    }
-    if (patterns.testFileRatio > 0.3) {
-      return ARCHETYPES.BUG_HUNTER;
-    }
-    if (patterns.refactorRatio > 0.25) {
-      return ARCHETYPES.REFACTORER;
-    }
-    if (patterns.docFileRatio > 0.2) {
-      return ARCHETYPES.DOCUMENTATION_HERO;
-    }
-    if (patterns.avgFilesPerCommit > 10) {
-      return ARCHETYPES.ARCHITECT;
-    }
-    if (patterns.avgCommitSize < 20) {
-      return ARCHETYPES.PERFECTIONIST;
-    }
-
-    return ARCHETYPES.GENERALIST;
+    // Find the best matching archetype
+    scores.sort((a, b) => b.score - a.score);
+    return scores[0].archetype;
   }
 
   private analyzeCommitStyle(contributor: ContributorStats): string {
