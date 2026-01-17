@@ -110,7 +110,10 @@ export type ArchetypeName =
   | 'REFACTORER'
   | 'DOCUMENTATION_HERO'
   | 'PERFECTIONIST'
-  | 'GENERALIST';
+  | 'GENERALIST'
+  | 'SPEEDSTER'
+  | 'GUARDIAN'
+  | 'INNOVATOR';
 
 export interface ArchetypeTemplate {
   name: string;

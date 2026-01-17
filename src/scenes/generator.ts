@@ -344,23 +344,12 @@ Write a brief (1-2 sentences) dramatic cliffhanger or teaser for the next act.`;
     if (profile) {
       const portrait = getDetailedPortrait(profile);
       console.log();
-      console.log(chalk.cyan('┌' + '─'.repeat(40) + '┐'));
       
-      // Show first 8 lines of portrait with name
-      const portraitLines = portrait.lines.slice(0, 8);
-      for (let i = 0; i < portraitLines.length; i++) {
-        const line = portraitLines[i].substring(0, 38);
-        if (i === 2) {
-          console.log(chalk.cyan('│') + line.padEnd(40) + chalk.cyan('│'));
-        } else {
-          console.log(chalk.cyan('│') + line.padEnd(40) + chalk.cyan('│'));
-        }
+      // Compact inline portrait with character info
+      for (const line of portrait.lines) {
+        console.log(chalk.cyan('  ' + line));
       }
-      
-      console.log(chalk.cyan('│') + ' '.repeat(40) + chalk.cyan('│'));
-      console.log(chalk.cyan('│') + chalk.bold.cyan(` ${profile.emoji} ${characterName}`.padEnd(40)) + chalk.cyan('│'));
-      console.log(chalk.cyan('│') + chalk.dim(` ${profile.archetype}`.padEnd(40)) + chalk.cyan('│'));
-      console.log(chalk.cyan('└' + '─'.repeat(40) + '┘'));
+      console.log(chalk.bold.cyan(`  ${profile.emoji} ${characterName}`) + chalk.dim(` (${profile.archetype})`));
     } else {
       console.log();
       console.log(' '.repeat(25) + chalk.bold.cyan(characterName));

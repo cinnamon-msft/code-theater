@@ -12,7 +12,7 @@ const MAX_NAMED_CHARACTERS = 10;
 export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   ARCHITECT: {
     name: 'The Architect',
-    emoji: '🏛️',
+    emoji: '🦅',
     description: 'Sees the big picture. Makes sweeping changes that reshape the codebase.',
     traits: ['Visionary', 'Bold', 'Sometimes reckless', 'Speaks in abstractions'],
     speechStyle: "Uses architectural metaphors. Talks about 'foundations' and 'structures'.",
@@ -20,7 +20,7 @@ export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   },
   BUG_HUNTER: {
     name: 'The Bug Hunter',
-    emoji: '🔍',
+    emoji: '🦊',
     description: 'Patient detective. Finds the bugs nobody else can see.',
     traits: ['Methodical', 'Skeptical', 'Detail-oriented', 'Quietly triumphant'],
     speechStyle: "Precise. Uses evidence. 'The logs show...' and 'I traced it to...'",
@@ -36,7 +36,7 @@ export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   },
   REFACTORER: {
     name: 'The Refactorer',
-    emoji: '✨',
+    emoji: '🐱',
     description: 'Cannot let ugly code stand. Cleans what others leave behind.',
     traits: ['Perfectionist', 'Compulsive', 'Principled', 'Sometimes annoying'],
     speechStyle: "Talks about 'proper' ways. Names patterns. Sighs at legacy code.",
@@ -44,7 +44,7 @@ export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   },
   DOCUMENTATION_HERO: {
     name: 'The Documentation Hero',
-    emoji: '📚',
+    emoji: '🐘',
     description: 'The unsung hero who makes sure others can understand the code.',
     traits: ['Patient', 'Empathetic', 'Long-term thinker', 'Underappreciated'],
     speechStyle: "Explains things clearly. Asks 'what if someone new reads this?'",
@@ -52,7 +52,7 @@ export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   },
   PERFECTIONIST: {
     name: 'The Perfectionist',
-    emoji: '💎',
+    emoji: '🐝',
     description: 'Small, perfect commits. Every line considered.',
     traits: ['Careful', 'Anxious', 'High standards', 'Slow but reliable'],
     speechStyle: "Hedges statements. 'I think...' and 'Maybe we should...'",
@@ -60,11 +60,35 @@ export const ARCHETYPES: Record<ArchetypeName, ArchetypeTemplate> = {
   },
   GENERALIST: {
     name: 'The Journeyman',
-    emoji: '🛤️',
+    emoji: '🐺',
     description: 'Versatile contributor who goes where needed.',
     traits: ['Adaptable', 'Reliable', 'Team player', 'Jack of all trades'],
     speechStyle: "Practical. 'Whatever works' attitude. Team-focused language.",
     catchphrase: "I'll take care of it.",
+  },
+  SPEEDSTER: {
+    name: 'The Speedster',
+    emoji: '🐆',
+    description: 'Ships fast and iterates. Velocity is everything.',
+    traits: ['Impatient', 'Productive', 'Move fast', 'Fix later mentality'],
+    speechStyle: "Quick and direct. 'Just ship it.' 'We can fix that later.'",
+    catchphrase: 'Done is better than perfect.',
+  },
+  GUARDIAN: {
+    name: 'The Guardian',
+    emoji: '🐻',
+    description: 'Protects the codebase. Reviews everything thoroughly.',
+    traits: ['Protective', 'Thorough', 'Security-minded', 'Sometimes blocking'],
+    speechStyle: "Cautious. 'Have we considered...' 'What about edge cases?'",
+    catchphrase: 'Not on my watch.',
+  },
+  INNOVATOR: {
+    name: 'The Innovator',
+    emoji: '🐙',
+    description: 'Multi-tasker who brings creative solutions to problems.',
+    traits: ['Creative', 'Unconventional', 'Multi-threaded', 'Experimental'],
+    speechStyle: "Excited. 'What if we tried...' 'I have an idea!'",
+    catchphrase: "There's always another way.",
   },
 };
 
@@ -181,6 +205,9 @@ export class CharacterPool {
       { archetype: ARCHETYPES.ARCHITECT, score: Math.min(patterns.avgFilesPerCommit / 5, 3) + jitter() },
       { archetype: ARCHETYPES.PERFECTIONIST, score: patterns.avgCommitSize < 50 ? (50 - patterns.avgCommitSize) / 25 : 0 + jitter() },
       { archetype: ARCHETYPES.GENERALIST, score: 0.5 + jitter() },
+      { archetype: ARCHETYPES.SPEEDSTER, score: patterns.avgCommitSize > 100 ? 2 : 0 + jitter() },
+      { archetype: ARCHETYPES.GUARDIAN, score: patterns.testFileRatio * 4 + patterns.avgFilesPerCommit * 0.3 + jitter() },
+      { archetype: ARCHETYPES.INNOVATOR, score: patterns.avgFilesPerCommit > 3 ? 1.5 : 0 + jitter() },
     ];
 
     scores.sort((a, b) => b.score - a.score);
