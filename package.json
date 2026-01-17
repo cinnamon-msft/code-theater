@@ -28,6 +28,9 @@
   "license": "MIT",
   "dependencies": {
     "@github/copilot-sdk": "^0.1.13",
+    "@types/blessed": "^0.1.27",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "cli-boxes": "^3.0.0",

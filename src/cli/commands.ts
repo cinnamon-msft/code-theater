@@ -9,7 +9,7 @@ import type { GenerateOptions, Genre } from '../types.js';
 import { GitService, GitExtractor, RemoteHandler } from '../git/index.js';
 import { TheaterClient } from '../ai/client.js';
 import { SessionManager } from '../sessions/manager.js';
-import { SceneGenerator } from '../scenes/generator.js';
+import { TUISceneGenerator } from '../scenes/tui-generator.js';
 import { AsciiRenderer } from '../ascii/renderer.js';
 import { renderPortraitWithInfo } from '../ascii/portraits.js';
 import { CommitCache } from '../cache/index.js';
@@ -165,18 +165,18 @@ async function runGenerate(options: GenerateOptions): Promise<void> {
       chalk.cyan(`\n🎬 ${isNew ? 'New story' : 'Continuing story'} - Act ${actNumber}\n`)
     );
 
-    // Generate screenplay
-    const generator = new SceneGenerator();
+    // Get contributor names
+    const contributorNames = extraction.contributors.map(c => c.name);
+
+    // Generate screenplay using TUI
+    const generator = new TUISceneGenerator();
     await generator.generate(
       extraction.commits,
       directorSession,
-      characterPool,
+      contributorNames,
       {
         genre: options.genre,
-        streaming: true,
         actNumber,
-        full: options.full,
-        highlightsOnly: options.highlightsOnly,
       }
     );
 
