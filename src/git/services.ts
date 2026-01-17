@@ -130,9 +130,8 @@ export class GitService {
   async getContributorStats(commits: Commit[]): Promise<ContributorStats[]> {
     // Bot accounts to filter out
     const BOT_PATTERNS = [
-      /^copilot$/i,
-      /copilot\[bot\]/i,
-      /\[bot\]$/i,
+      /copilot/i,
+      /\[bot\]/i,
       /^dependabot/i,
       /^github-actions/i,
       /^renovate/i,
@@ -140,7 +139,10 @@ export class GitService {
       /^snyk-bot/i,
       /^semantic-release-bot/i,
       /^web-flow$/i,
-      /^noreply@github\.com$/i,
+      /noreply@github\.com$/i,
+      /github\.com$/i,
+      /^bot$/i,
+      /automation/i,
     ];
 
     const isBot = (name: string, email: string): boolean => 

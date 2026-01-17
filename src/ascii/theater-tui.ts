@@ -167,7 +167,8 @@ export class TheaterTUI {
   }
 
   private renderSpeechBubble(name: string, text: string): string {
-    const maxLen = 50;
+    // Show full dialogue, wrap if needed
+    const maxLen = this.width - 20;
     const truncated = text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
     return `    ${chalk.bold(name)}: "${truncated}"`;
   }

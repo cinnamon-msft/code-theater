@@ -35,7 +35,7 @@ export class TUISceneGenerator {
     // Initial render
     this.tui.setTitle(`CODE THEATER - Act ${options.actNumber}`);
     this.tui.render();
-    await this.tui.sleep(2000);
+    await this.tui.sleep(1000);
 
     // Generate scenes for each selected commit
     for (let i = 0; i < selectedCommits.length; i++) {
@@ -49,7 +49,7 @@ export class TUISceneGenerator {
       await this.generateScene(commit, character, directorSession, options, i + 1);
       
       // Pause between scenes
-      await this.tui.sleep(3000);
+      await this.tui.sleep(2000);
     }
 
     // Final render
@@ -58,7 +58,7 @@ export class TUISceneGenerator {
     this.tui.render();
     
     // Cleanup
-    await this.tui.sleep(2000);
+    await this.tui.sleep(1000);
     this.tui.cleanup();
   }
 
@@ -73,7 +73,7 @@ export class TUISceneGenerator {
     const action = this.generateAction(commit, options.genre);
     this.tui.setAction(action);
     this.tui.render();
-    await this.tui.sleep(1500);
+    await this.tui.sleep(500);
 
     // Generate dialogue using AI
     const prompt = `You are writing dialogue for a ${options.genre} screenplay.
