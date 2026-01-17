@@ -31,13 +31,9 @@ export class GitService {
   }
 
   async getCommits(from?: string, to?: string): Promise<Commit[]> {
-    const range = from && to ? `${from}..${to}` : to || 'HEAD';
-    
     const log = await this.git.log({
       from: from,
       to: to || 'HEAD',
-      '--stat': null,
-      '--numstat': null,
     });
 
     return Promise.all(log.all.map(async (entry) => this.parseCommit(entry)));
